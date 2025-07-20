@@ -4,9 +4,8 @@
 --]]
 
 local BD = require("ui/bidi")
-local CalibreExtensions = require("extensions")
-local CalibreMetadata = require("metadata")
-local CalibreSearch = require("search")
+local CalibreExtensions = require("cex/extensions")
+local CalibreMetadata = require("cex/metadata")
 local ConfirmBox = require("ui/widget/confirmbox")
 local Device = require("device")
 local FFIUtil = require("ffi/util")
@@ -375,9 +374,6 @@ function CalibreWireless:disconnect(no_parting_noop)
     self.disconnected_by_server = false
 
     CalibreMetadata:clean()
-
-    -- Assume the library content was modified, as such, invalidate our Search metadata cache.
-    CalibreSearch:invalidateCache()
 end
 
 function CalibreWireless:reconnect()

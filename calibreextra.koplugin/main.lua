@@ -8,9 +8,8 @@
 --]]
 
 local BD = require("ui/bidi")
-local CalibreExtensions = require("extensions")
-local CalibreSearch = require("search")
-local CalibreWireless = require("wireless")
+local CalibreExtensions = require("cex/extensions")
+local CalibreWireless = require("cex/wireless")
 local Dispatcher = require("dispatcher")
 local InfoMessage = require("ui/widget/infomessage")
 local LuaSettings = require("luasettings")
@@ -21,20 +20,9 @@ local C_ = _.pgettext
 local T = require("ffi/util").template
 
 local Calibre = WidgetContainer:extend{
-    name = "calibre",
+    name = "calibreextra",
     is_doc_only = false,
 }
-
-function Calibre:onCalibreSearch()
-    CalibreSearch:ShowSearch()
-    return true
-end
-
-function Calibre:onCalibreBrowseBy(field)
-    CalibreSearch.search_value = ""
-    CalibreSearch:find(field)
-    return true
-end
 
 function Calibre:onNetworkDisconnected()
     CalibreWireless:disconnect()
@@ -61,13 +49,8 @@ function Calibre:onCloseWirelessConnection()
 end
 
 function Calibre:onDispatcherRegisterActions()
-    Dispatcher:registerAction("calibre_search", { category="none", event="CalibreSearch", title=_("Calibre metadata search"), general=true,})
-    Dispatcher:registerAction("calibre_browse_tags", { category="none", event="CalibreBrowseBy", arg="tags", title=_("Browse all calibre tags"), general=true,})
-    Dispatcher:registerAction("calibre_browse_series", { category="none", event="CalibreBrowseBy", arg="series", title=_("Browse all calibre series"), general=true,})
-    Dispatcher:registerAction("calibre_browse_authors", { category="none", event="CalibreBrowseBy", arg="authors", title=_("Browse all calibre authors"), general=true,})
-    Dispatcher:registerAction("calibre_browse_titles", { category="none", event="CalibreBrowseBy", arg="title", title=_("Browse all calibre titles"), general=true, separator=true,})
-    Dispatcher:registerAction("calibre_start_connection", { category="none", event="StartWirelessConnection", title=_("Calibre wireless connect"), general=true,})
-    Dispatcher:registerAction("calibre_close_connection", { category="none", event="CloseWirelessConnection", title=_("Calibre wireless disconnect"), general=true,})
+    Dispatcher:registerAction("calibreextra_start_connection", { category="none", event="StartWirelessConnection", title=_("Calibre wireless connect"), general=true,})
+    Dispatcher:registerAction("calibreextra_close_connection", { category="none", event="CloseWirelessConnection", title=_("Calibre wireless disconnect"), general=true,})
 end
 
 function Calibre:init()
@@ -77,9 +60,10 @@ function Calibre:init()
 end
 
 function Calibre:addToMainMenu(menu_items)
-    menu_items.calibre = {
-        -- its name is "calibre", but all our top menu items are uppercase.
-        text = _("Calibre"),
+    menu_items.calibreextra = {
+        -- its name is "calibreextra", but all our top menu items are uppercase.
+        text = _("Calibre Extra"),
+        sorting_hint = "tools",
         sub_item_table = {
             {
                 text_func = function()
@@ -101,145 +85,12 @@ function Calibre:addToMainMenu(menu_items)
                     end
                 end,
             },
-            {   text = _("Search settings"),
-                keep_menu_open = true,
-                sub_item_table = self:getSearchMenuTable(),
-            },
             {
                 text = _("Wireless settings"),
                 keep_menu_open = true,
                 sub_item_table = self:getWirelessMenuTable(),
             },
         }
-    }
-    -- insert the metadata search
-    if G_reader_settings:isTrue("calibre_search_from_reader") or not self.ui.view then
-        menu_items.find_book_in_calibre_catalog = {
-            text = _("Calibre metadata search"),
-            callback = function()
-                CalibreSearch:ShowSearch()
-            end
-        }
-    end
-end
-
--- search options available from UI
-function Calibre:getSearchMenuTable()
-    return {
-        {
-            text = _("Manage libraries"),
-            separator = true,
-            keep_menu_open = true,
-            sub_item_table_func = function()
-                local result = {}
-                -- append previous scanned dirs to the list.
-                local cache = LuaSettings:open(CalibreSearch.cache_libs.path)
-                for path, _ in pairs(cache.data) do
-                    table.insert(result, {
-                        text = path,
-                        keep_menu_open = true,
-                        checked_func = function()
-                            return cache:isTrue(path)
-                        end,
-                        callback = function()
-                            cache:toggle(path)
-                            cache:flush()
-                            CalibreSearch:invalidateCache()
-                        end,
-                    })
-                end
-                -- if there's no result then no libraries are stored
-                if #result == 0 then
-                    table.insert(result, {
-                        text = _("No calibre libraries"),
-                        enabled = false
-                    })
-                end
-                table.insert(result, 1, {
-                    text = _("Rescan disk for calibre libraries"),
-                    separator = true,
-                    callback = function()
-                        CalibreSearch:prompt()
-                    end,
-                })
-                return result
-            end,
-        },
-        {
-            text = _("Enable searches in the reader"),
-            checked_func = function()
-                return G_reader_settings:isTrue("calibre_search_from_reader")
-            end,
-            callback = function()
-                G_reader_settings:toggle("calibre_search_from_reader")
-                UIManager:show(InfoMessage:new{
-                    text = _("This will take effect on next restart."),
-                })
-            end,
-        },
-        {
-            text = _("Store metadata in cache"),
-            checked_func = function()
-                return G_reader_settings:nilOrTrue("calibre_search_cache_metadata")
-            end,
-            callback = function()
-                G_reader_settings:flipNilOrTrue("calibre_search_cache_metadata")
-            end,
-        },
-        {
-            text = _("Case sensitive search"),
-            checked_func = function()
-                return not G_reader_settings:nilOrTrue("calibre_search_case_insensitive")
-            end,
-            callback = function()
-                G_reader_settings:flipNilOrTrue("calibre_search_case_insensitive")
-            end,
-        },
-        {
-            text = _("Search by title"),
-            checked_func = function()
-                return G_reader_settings:nilOrTrue("calibre_search_find_by_title")
-            end,
-            callback = function()
-                G_reader_settings:flipNilOrTrue("calibre_search_find_by_title")
-            end,
-        },
-        {
-            text = _("Search by authors"),
-            checked_func = function()
-                return G_reader_settings:nilOrTrue("calibre_search_find_by_authors")
-            end,
-            callback = function()
-                G_reader_settings:flipNilOrTrue("calibre_search_find_by_authors")
-            end,
-        },
-        {
-            text = _("Search by series"),
-            checked_func = function()
-                return G_reader_settings:isTrue("calibre_search_find_by_series")
-            end,
-            callback = function()
-                G_reader_settings:toggle("calibre_search_find_by_series")
-            end,
-        },
-        {
-            text = _("Search by tag"),
-            checked_func = function()
-                return G_reader_settings:isTrue("calibre_search_find_by_tag")
-            end,
-            callback = function()
-                G_reader_settings:toggle("calibre_search_find_by_tag")
-            end,
-        },
-        {
-            text = _("Search by path"),
-            checked_func = function()
-                return G_reader_settings:isTrue("calibre_search_find_by_path")
-            end,
-            callback = function()
-                G_reader_settings:toggle("calibre_search_find_by_path")
-            end,
-        },
     }
 end
 

@@ -4,11 +4,16 @@ An improved version of [KOReader](https://koreader.rocks/)'s [Calibre](https://c
 
 To install copy the `calibreextra.koplugin` to the plugins directory of your KOReader installation.
 
+## Removed features
+
+The following features are removed in comparison to the default Calibre plugin:
+
+* The metadata search interface.
+* Support for multiple Calibre libraries on device, only the inbox for the wireless client is supported.
+
 ## Coexistence with the default Calibre plugin
 
 While it is possible to have both plugins enabled in KOReader it is recommended that you disable the default Calibre plugin while using this plugin. If you don't here are a few things to note. There may be other issues not listed here.
 
-* Many of the settings are shared, changing a setting for one plugin changes it for both. This means
-  the directory the wireless client syncs to is shared.
-* Using the default plugin to synchronise from Calibre will remove additional metadata that this
-  plugin relies on.
+* Many of the settings are shared, changing a setting for one plugin changes it for both. This means the directory the wireless client syncs to is shared.
+* Using the default plugin to synchronise from Calibre will remove additional metadata that this plugin relies on.
