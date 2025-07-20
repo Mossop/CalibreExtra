@@ -4,8 +4,6 @@ This module implements functions for loading, saving and editing calibre metadat
 Calibre uses JSON to store metadata on device after each wired transfer.
 In wireless transfers calibre sends the same metadata to the client, which is in charge
 of storing it.
-
-@module koplugin.calibre.metadata
 --]]--
 
 local lfs = require("libs/libkoreader-lfs")
@@ -23,23 +21,13 @@ local used_metadata = {
     "authors",
     "tags",
     "series",
-    "series_index"
+    "series_index",
+    "user_metadata"
 }
 
--- The search metadata cache requires an even smaller subset
-local search_used_metadata = {
-    "lpath",
-    "size",
-    "title",
-    "authors",
-    "tags",
-    "series",
-    "series_index"
-}
-
-local function slim(book, is_search)
+local function slim(book)
     local slim_book = rapidjson.object({})
-    for _, k in ipairs(is_search and search_used_metadata or used_metadata) do
+    for _, k in ipairs(used_metadata) do
         if k == "series" or k == "series_index" then
             slim_book[k] = book[k] or rapidjson.null
         elseif k == "tags" or k == "authors" then
@@ -49,6 +37,20 @@ local function slim(book, is_search)
         end
     end
     return slim_book
+end
+
+local function metadata(book)
+    local book_meta = slim(book.metadata)
+    book_meta.user_metadata = rapidjson.object({})
+
+    for k, o in pairs(book.metadata.user_metadata) do
+        book_meta.user_metadata[k] = { value = o["#value#"] }
+        if o["#extra#"] and o["#extra#"] ~= rapidjson.null then
+            book_meta.user_metadata[k].index = o["#extra#"]
+        end
+    end
+
+    return book_meta
 end
 
 --- find calibre files for a given dir
@@ -70,6 +72,7 @@ local function findCalibreFiles(dir)
 end
 
 local CalibreMetadata = {
+    dir = nil,
     -- info about the library itself. It should
     -- hold a table with the contents of "driveinfo.calibre"
     drive = rapidjson.array({}),
@@ -96,11 +99,35 @@ function CalibreMetadata:saveDeviceInfo(arg)
     -- "KOReader" is used by smart device app
     -- "Amazon", "Kobo", "Bq" ... are used by platform device drivers
     local previous_name = self.drive.device_name
+    local previous_fields = self.drive.fields
     self.drive = arg
     if previous_name then
         self.drive.device_name = previous_name
     end
+    if previous_fields then
+        self.drive.fields = previous_fields
+    end
     rapidjson.dump(self.drive, self.driveinfo)
+end
+
+-- saves library fields to JSON file
+function CalibreMetadata:saveLibraryInfo(arg)
+    self.drive.fields = rapidjson.object({})
+    for key, data in pairs(arg.fieldMetadata) do
+        if data.is_custom and data.colnum and data.datatype ~= "float" then
+            local field = rapidjson.object({})
+            field.name = data.name
+            field.datatype = data.datatype
+
+            self.drive.fields[key] = field
+        end
+    end
+    rapidjson.dump(self.drive, self.driveinfo)
+end
+
+-- Gets the custom fields for the library
+function CalibreMetadata:getLibraryFields()
+    return self.drive.fields
 end
 
 -- loads books' metadata from JSON file
@@ -135,15 +162,15 @@ end
 function CalibreMetadata:addBook(book)
     -- prevent duplicate entries
     if not self:updateBook(book) then
-        table.insert(self.books, #self.books + 1, slim(book))
+        table.insert(self.books, #self.books + 1, metadata(book))
     end
 end
 
 -- update a book in our books table if exists
 function CalibreMetadata:updateBook(book)
-    local _, index = self:getBookUuid(book.lpath)
+    local _, index = self:getBookUuid(book.metadata.lpath)
     if index then
-        self.books[index] = slim(book)
+        self.books[index] = metadata(book)
         return true
     end
     return false
@@ -199,20 +226,6 @@ function CalibreMetadata:prune()
     return count
 end
 
--- removes unused metadata from books
-function CalibreMetadata:cleanUnused(is_search)
-    for index, book in ipairs(self.books) do
-        self.books[index] = slim(book, is_search)
-    end
-
-    -- We don't want to stomp on the library's actual JSON db for metadata searches.
-    if is_search then
-        return
-    end
-
-    self:saveBookList()
-end
-
 -- cleans all temp data stored for current library.
 function CalibreMetadata:clean()
     self.books = rapidjson.array({})
@@ -243,8 +256,9 @@ end
 -- If you're not working with the metadata directly (ie: in wireless connections)
 -- you should copy relevant data to another table and free this one to keep things tidy.
 
-function CalibreMetadata:init(dir, is_search)
+function CalibreMetadata:init(dir)
     if not dir then return end
+    if self.dir == dir then return end
     local start_time = time.now()
     self.path = dir
     local ok_meta, ok_drive, file_meta, file_drive = findCalibreFiles(dir)
@@ -255,23 +269,14 @@ function CalibreMetadata:init(dir, is_search)
     self.metadata = file_meta
     if ok_meta then
         self.books = self:loadBookList()
-    elseif is_search then
-        -- no metadata to search
-        return false
     end
 
     local msg
-    if is_search then
-        self:cleanUnused(is_search)
-        msg = string.format("(search) in %.3f milliseconds: %d books",
-            time.to_ms(time.since(start_time)), #self.books)
-    else
-        local deleted_count = self:prune()
-        self:cleanUnused()
-        msg = string.format("in %.3f milliseconds: %d books. %d pruned",
-            time.to_ms(time.since(start_time)), #self.books, deleted_count)
-    end
+    local deleted_count = self:prune()
+    msg = string.format("in %.3f milliseconds: %d books. %d pruned",
+        time.to_ms(time.since(start_time)), #self.books, deleted_count)
     logger.info(string.format("calibre info loaded from disk %s", msg))
+    self.dir = dir
     return true
 end
 

@@ -436,6 +436,8 @@ function CalibreWireless:onReceiveJSON(data)
                 self:serverFeedback(arg)
             elseif opcode == OPCODES.NOOP then
                 self:noop(arg)
+            else
+                logger.warn("unknown calibre opcode", opcode)
             end
             self.re(true)
         else
@@ -567,6 +569,7 @@ end
 
 function CalibreWireless:setLibraryInfo(arg)
     logger.dbg("SET_LIBRARY_INFO", arg)
+    CalibreMetadata:saveLibraryInfo(arg)
     self:sendJsonData('OK', {})
 end
 
@@ -661,7 +664,7 @@ function CalibreWireless:sendBook(arg)
                 outfile:close()
                 logger.dbg("complete writing file", filename)
                 -- add book to local database/table
-                CalibreMetadata:addBook(arg.metadata)
+                CalibreMetadata:addBook(arg)
                 UIManager:show(InfoMessage:new{
                     text = T(_("Received file %1/%2: %3"),
                         arg.thisBook + 1, arg.totalBooks, BD.filepath(filename)),
@@ -708,7 +711,7 @@ end
 function CalibreWireless:sendBookMetadata(arg)
     logger.dbg("SEND_BOOK_METADATA", arg)
 
-    CalibreMetadata:updateBook(arg.data)
+    -- CalibreMetadata:updateBook(arg.data)
 
     if (arg.index + 1) == arg.count then
         CalibreMetadata:saveBookList()
