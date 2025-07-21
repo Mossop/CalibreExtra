@@ -9,6 +9,7 @@
 
 local BD = require("ui/bidi")
 local CalibreExtensions = require("cex/extensions")
+local CalibreMetadata = require("cex/metadata")
 local CalibreWireless = require("cex/wireless")
 local Dispatcher = require("dispatcher")
 local InfoMessage = require("ui/widget/infomessage")
@@ -83,6 +84,50 @@ function Calibre:addToMainMenu(menu_items)
                     else
                         CalibreWireless:disconnect()
                     end
+                end,
+            },
+            {
+                text = _("Fields"),
+                sub_item_table_func = function()
+                    local enabled_fields = G_reader_settings:readSetting("calibre_enabled_fields", {})
+
+                    local function field_menu(id, name)
+                        return {
+                            text = name,
+                            keep_menu_open = true,
+                            checked_func = function()
+                                return enabled_fields[id]
+                            end,
+                            callback = function()
+                                if enabled_fields[id] then
+                                    enabled_fields[id] = nil;
+                                else
+                                    enabled_fields[id] = true
+                                end
+
+                                G_reader_settings:saveSetting("calibre_enabled_fields", enabled_fields)
+                            end
+                        }
+                    end
+
+                    local submenu = {
+                        field_menu("title", _("Title")),
+                        field_menu("authors", _("Authors")),
+                        field_menu("tags", _("Tags")),
+                        field_menu("series", _("Series"))
+                    }
+
+                    local inbox_dir = G_reader_settings:readSetting("inbox_dir")
+                    if inbox_dir then
+                        CalibreMetadata:init(inbox_dir)
+                        for k, field in pairs(CalibreMetadata:getLibraryFields()) do
+                            if field.datatype ~= "float" then
+                                table.insert(submenu, field_menu(k, field.name))
+                            end
+                        end
+                    end
+
+                    return submenu
                 end,
             },
             {
