@@ -109,7 +109,6 @@ end
 -- Gets the custom fields for the library
 function CalibreMetadata:getLibraryFields()
     local fields = {}
-    logger.dbg("getLibraryFields", self.books)
     for _, book in ipairs(self.books) do
         for key, field in pairs(book.user_metadata) do
             if not fields[key] then

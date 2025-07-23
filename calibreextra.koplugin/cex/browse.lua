@@ -1,12 +1,29 @@
+local BookList = require("ui/widget/booklist")
 local CalibreMetadata = require("cex/metadata")
+local FileChooser = require("ui/widget/filechooser")
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local _ = require("gettext")
+local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
 local rapidjson = require("rapidjson")
 local sort = require("sort")
 local time = require("ui/time")
+
+local BookBrowser = FileChooser:extend{
+}
+
+function BookBrowser:init()
+    self.path_items = {}
+    BookList.init(self)
+end
+
+local FieldBrowser = Menu:extend{
+    covers_fullscreen = true,
+    is_borderless = true,
+    is_popout = false,
+}
 
 local TITLE_FIELD = {
     name = _("Title"),
@@ -30,19 +47,61 @@ local SERIES_FIELD = {
 
 -- This is a singleton
 local CalibreBrowse = WidgetContainer:extend{
+    inbox_dir = nil,
     cache = nil,
     current = nil,
     field_browser = nil,
+    book_browser = nil,
+    stack = nil,
 }
 
 function CalibreBrowse:display()
-    self.field_browser:switchItemTable(self.current.name, self.current.entries, 1)
-    UIManager:show(self.field_browser)
+    if self.current.datatype == "book" then
+        self.book_browser = self.book_browser or BookBrowser:new{
+            onReturn = function()
+                self:pop()
+            end,
+            onFileSelect = function(item)
+                self:close()
+            end,
+            onClose = function()
+                FileChooser.onClose(self.book_browser)
+                self.book_browser = nil
+                self:close()
+            end
+        }
+
+        local files = {}
+        for _, entry in ipairs(self.current.entries) do
+            local fullpath = self.inbox_dir .. '/' .. entry.lpath
+            local attributes = lfs.attributes(fullpath) or {}
+            table.insert(files, self.book_browser:getListItem(self.inbox_dir, entry.text, fullpath, attributes, {}))
+        end
+
+        self.book_browser.paths = self.stack
+        self.book_browser:switchItemTable(self.current.name, self.book_browser:genItemTable({}, files, nil), 1)
+        UIManager:show(self.book_browser)
+    else
+        self.field_browser = self.field_browser or FieldBrowser:new{
+            onReturn = function()
+                self:pop()
+            end,
+            onClose = function()
+                Menu.onClose(self.field_browser)
+                self.field_browser = nil
+                self:close()
+            end
+        }
+
+        self.field_browser.paths = self.stack
+        self.field_browser:switchItemTable(self.current.name, self.current.entries, 1)
+        UIManager:show(self.field_browser)
+    end
 end
 
 function CalibreBrowse:push(menu)
     if self.current then
-        table.insert(self.field_browser.paths, self.current)
+        table.insert(self.stack, self.current)
     end
 
     self.current = menu
@@ -51,7 +110,7 @@ function CalibreBrowse:push(menu)
 end
 
 function CalibreBrowse:pop()
-    self.current = table.remove(self.field_browser.paths)
+    self.current = table.remove(self.stack)
     self:display()
 end
 
@@ -69,6 +128,7 @@ function CalibreBrowse:push_field(node)
             table.insert(entries, {
                 index = field.index,
                 text = text,
+                lpath = field.book.lpath,
                 callback = function()
                 end
             })
@@ -96,14 +156,30 @@ function CalibreBrowse:push_field(node)
 
     table.sort(entries, sort_fn)
 
-    self:push({ name = node.name, entries = entries })
+    self:push({ name = node.name, datatype = node.datatype, entries = entries })
+end
+
+function CalibreBrowse:close()
+    if self.field_browser then
+        UIManager:close(self.field_browser)
+    end
+
+    if self.book_browser then
+        UIManager:close(self.book_browser)
+    end
+
+    self.cache = nil
+    self.current = nil
+    self.field_browser = nil
+    self.book_browser = nil
+    self.stack = nil
 end
 
 function CalibreBrowse:browse()
     local start_time = time.now()
 
-    local inbox_dir = G_reader_settings:readSetting("inbox_dir")
-    CalibreMetadata:init(inbox_dir)
+    self.inbox_dir = G_reader_settings:readSetting("inbox_dir")
+    CalibreMetadata:init(self.inbox_dir)
 
     local fields = {}
     local enabled_fields = G_reader_settings:readSetting("calibre_enabled_fields", {})
@@ -191,23 +267,8 @@ function CalibreBrowse:browse()
     logger.info(string.format("Built browse cache in %.3f milliseconds",
         time.to_ms(time.since(start_time))))
 
-    self.field_browser = Menu:new{
-        covers_fullscreen = true,
-        is_borderless = true,
-        is_popout = false,
-        onReturn = function()
-            self:pop()
-        end,
-        onClose = function()
-            Menu.onClose(self.field_browser)
-
-            self.cache = nil
-            self.current = nil
-            self.field_browser = nil
-        end
-    }
-
     self.current = nil
+    self.stack = {}
     self:push_field(self.cache)
 end
 
