@@ -135,7 +135,6 @@ function Calibre:getFieldsMenuTable()
     end
 
     local submenu = {
-        field_menu("title", _("Title")),
         field_menu("authors", _("Authors")),
         field_menu("tags", _("Tags")),
         field_menu("series", _("Series"))

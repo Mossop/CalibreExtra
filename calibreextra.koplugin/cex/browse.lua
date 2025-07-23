@@ -77,9 +77,6 @@ function CalibreBrowse:display()
             local fullpath = self.inbox_dir .. '/' .. entry.lpath
             local attributes = lfs.attributes(fullpath) or {}
             local file_entry = self.book_browser:getListItem(self.inbox_dir, entry.text, fullpath, attributes, {})
-            if self.current.ordering == "index" then
-                file_entry.mandatory = entry.index
-            end
             table.insert(files, file_entry)
         end
 
@@ -210,7 +207,7 @@ function CalibreBrowse:browse()
     local enabled_fields = G_reader_settings:readSetting("calibre_enabled_fields", {})
 
     local function add_field(id, field, values, book, index)
-        if enabled_fields[id] == false or values == rapidjson.null then
+        if enabled_fields[id] == false or values == rapidjson.null or field.datatype == "float" then
             return
         end
 
