@@ -569,7 +569,6 @@ end
 
 function CalibreWireless:setLibraryInfo(arg)
     logger.dbg("SET_LIBRARY_INFO", arg)
-    CalibreMetadata:saveLibraryInfo(arg)
     self:sendJsonData('OK', {})
 end
 
