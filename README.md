@@ -4,6 +4,12 @@ An improved version of [KOReader](https://koreader.rocks/)'s [Calibre](https://c
 
 To install copy the `calibreextra.koplugin` to the plugins directory of your KOReader installation.
 
+## New features
+
+### Library browser
+
+This plugin supports navigating through the Calibre library in a browser like interface. From the plugin's settings you can configure which fields are available, including custom user fields. Then you can navigate the fields displaying all books that match.
+
 ## Removed features
 
 The following features are removed in comparison to the default Calibre plugin:

@@ -8,6 +8,7 @@
 --]]
 
 local BD = require("ui/bidi")
+local CalibreBrowse = require("cex/browse")
 local CalibreExtensions = require("cex/extensions")
 local CalibreMetadata = require("cex/metadata")
 local CalibreWireless = require("cex/wireless")
@@ -95,6 +96,17 @@ function Calibre:addToMainMenu(menu_items)
                 sub_item_table = self:getWirelessMenuTable(),
             },
         }
+    }
+
+    menu_items.calibrebrowse = {
+        text = _("Browse Calibre"),
+        sorting_hint = "search",
+        enabled_func = function()
+            return G_reader_settings:readSetting("inbox_dir")
+        end,
+        callback = function()
+            CalibreBrowse:browse()
+        end,
     }
 end
 
