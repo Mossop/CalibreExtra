@@ -82,7 +82,9 @@ function CalibreBrowse:display()
             local fullpath = self.inbox_dir .. '/' .. entry.lpath
             local attributes = lfs.attributes(fullpath) or {}
             local file_entry = self.book_browser:getListItem(self.inbox_dir, entry.text, fullpath, attributes, {})
-            file_entry.mandatory = entry.index
+            if self.current.ordering == "index" then
+                file_entry.mandatory = entry.index
+            end
             table.insert(files, file_entry)
         end
 
@@ -172,7 +174,12 @@ function CalibreBrowse:push_field(node)
 
     table.sort(entries, sort_fn)
 
-    self:push({ name = node.name, datatype = node.datatype, entries = entries })
+    self:push({
+        name = node.name,
+        ordering = node.ordering,
+        datatype = node.datatype,
+        entries = entries,
+    })
 end
 
 function CalibreBrowse:close()
