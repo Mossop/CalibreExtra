@@ -101,6 +101,14 @@ function CalibreBrowse:display()
             end
         }
 
+        if #self.stack > 0 then
+            self.field_browser.onReturn = function()
+                self:pop()
+            end
+        else
+            self.field_browser.onReturn = nil
+        end
+
         self.field_browser.paths = self.stack
         self.field_browser:switchItemTable(self.current.name, self.current.entries, 1)
         UIManager:show(self.field_browser)
