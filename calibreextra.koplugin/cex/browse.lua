@@ -133,6 +133,7 @@ function CalibreBrowse:push_field(node)
         if field.book then
             local text
             if node.ordering == "index" then
+                logger.dbg("push_field", field.index, field.book.title)
                 text = string.format("%d - %s", field.index, field.book.title)
             else
                 text = field.book.title
@@ -250,7 +251,7 @@ function CalibreBrowse:browse()
             end
 
             table.insert(fields[id].children[value].children, {
-                index = tonumber(index),
+                index = tonumber(index) or 1,
                 book = book
             })
         end
