@@ -72,7 +72,6 @@ local function findCalibreFiles(dir)
 end
 
 local CalibreMetadata = {
-    dir = nil,
     -- info about the library itself. It should
     -- hold a table with the contents of "driveinfo.calibre"
     drive = rapidjson.array({}),
@@ -258,7 +257,6 @@ end
 
 function CalibreMetadata:init(dir)
     if not dir then return end
-    if self.dir == dir then return end
     local start_time = time.now()
     self.path = dir
     local ok_meta, ok_drive, file_meta, file_drive = findCalibreFiles(dir)
@@ -276,7 +274,6 @@ function CalibreMetadata:init(dir)
     msg = string.format("in %.3f milliseconds: %d books. %d pruned",
         time.to_ms(time.since(start_time)), #self.books, deleted_count)
     logger.info(string.format("calibre info loaded from disk %s", msg))
-    self.dir = dir
     return true
 end
 

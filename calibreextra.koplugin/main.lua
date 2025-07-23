@@ -125,6 +125,7 @@ function Calibre:addToMainMenu(menu_items)
                                 table.insert(submenu, field_menu(k, field.name))
                             end
                         end
+                        CalibreMetadata:clean()
                     end
 
                     return submenu
