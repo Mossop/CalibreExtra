@@ -19,6 +19,7 @@ local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local _ = require("gettext")
 local C_ = _.pgettext
 local T = require("ffi/util").template
+local sort = require("sort")
 
 local Calibre = WidgetContainer:extend{
     name = "calibreextra",
@@ -150,6 +151,11 @@ function Calibre:getFieldsMenuTable()
         end
         CalibreMetadata:clean()
     end
+
+    local natsort = sort.natsort_cmp()
+    table.sort(submenu, function(a, b)
+        return natsort(a.text, b.text)
+    end)
 
     return submenu
 end
