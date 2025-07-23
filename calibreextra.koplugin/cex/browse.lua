@@ -25,11 +25,6 @@ local FieldBrowser = Menu:extend{
     is_popout = false,
 }
 
-local TITLE_FIELD = {
-    name = _("Title"),
-    datatype = "text",
-}
-
 local AUTHORS_FIELD = {
     name = _("Authors"),
     datatype = "author",
@@ -204,11 +199,18 @@ function CalibreBrowse:browse()
     self.inbox_dir = G_reader_settings:readSetting("inbox_dir")
     CalibreMetadata:init(self.inbox_dir)
 
-    local fields = {}
+    local fields = {
+        title = {
+            name = _("All Books"),
+            ordering = "text",
+            datatype = "book",
+            children = {}
+        }
+    }
     local enabled_fields = G_reader_settings:readSetting("calibre_enabled_fields", {})
 
     local function add_field(id, field, values, book, index)
-        if not enabled_fields[id] or values == rapidjson.null then
+        if enabled_fields[id] == false or values == rapidjson.null then
             return
         end
 
@@ -269,7 +271,8 @@ function CalibreBrowse:browse()
     end
 
     for _, book in ipairs(CalibreMetadata.books) do
-        add_field("title", TITLE_FIELD, book.title, book)
+        table.insert(fields.title.children, { book = book })
+
         add_field("authors", AUTHORS_FIELD, book.authors, book)
         add_field("tags", TAGS_FIELD, book.tags, book)
         add_field("series", SERIES_FIELD, book.series, book, book.series_index)

@@ -120,11 +120,11 @@ function Calibre:getFieldsMenuTable()
             text = name,
             keep_menu_open = true,
             checked_func = function()
-                return enabled_fields[id]
+                return enabled_fields[id] ~= false
             end,
             callback = function()
-                if enabled_fields[id] then
-                    enabled_fields[id] = nil;
+                if enabled_fields[id] ~= false then
+                    enabled_fields[id] = false;
                 else
                     enabled_fields[id] = true
                 end
