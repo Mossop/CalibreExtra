@@ -61,8 +61,14 @@ function CalibreBrowse:display()
             onReturn = function()
                 self:pop()
             end,
-            onFileSelect = function(item)
+            onFileSelect = function(browser, item)
                 self:close()
+
+                local Event = require("ui/event")
+                UIManager:broadcastEvent(Event:new("SetupShowReader"))
+
+                local ReaderUI = require("apps/reader/readerui")
+                ReaderUI:showReader(item.path)
             end,
             onClose = function()
                 FileChooser.onClose(self.book_browser)
@@ -75,7 +81,9 @@ function CalibreBrowse:display()
         for _, entry in ipairs(self.current.entries) do
             local fullpath = self.inbox_dir .. '/' .. entry.lpath
             local attributes = lfs.attributes(fullpath) or {}
-            table.insert(files, self.book_browser:getListItem(self.inbox_dir, entry.text, fullpath, attributes, {}))
+            local file_entry = self.book_browser:getListItem(self.inbox_dir, entry.text, fullpath, attributes, {})
+            file_entry.mandatory = entry.index
+            table.insert(files, file_entry)
         end
 
         self.book_browser.paths = self.stack
