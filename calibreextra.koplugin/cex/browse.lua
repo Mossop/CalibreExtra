@@ -5,10 +5,10 @@ local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local _ = require("gettext")
+local ffiUtil = require("ffi/util")
 local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
 local rapidjson = require("rapidjson")
-local sort = require("sort")
 local time = require("ui/time")
 
 local BookBrowser = FileChooser:extend{
@@ -161,9 +161,8 @@ function CalibreBrowse:push_field(node)
             return a.index < b.index
         end
     else
-        local natsort = sort.natsort_cmp()
         sort_fn = function(a, b)
-            return natsort(a.text, b.text)
+            return ffiUtil.strcoll(a.text, b.text)
         end
     end
 
