@@ -87,7 +87,7 @@ function CalibreBrowse:display()
         end
 
         self.book_browser.paths = self.stack
-        self.book_browser:switchItemTable(self.current.name, self.book_browser:genItemTable({}, files, nil), 1)
+        self.book_browser:switchItemTable(self.current.name, files, 1)
         UIManager:show(self.book_browser)
     else
         self.field_browser = self.field_browser or FieldBrowser:new{
@@ -161,7 +161,7 @@ function CalibreBrowse:push_field(node)
     local sort_fn
     if node.ordering == "index" then
         sort_fn = function(a, b)
-            return a.index - b.index
+            return a.index < b.index
         end
     else
         local natsort = sort.natsort_cmp()
@@ -242,7 +242,7 @@ function CalibreBrowse:browse()
             end
 
             table.insert(fields[id].children[value].children, {
-                index = index,
+                index = tonumber(index),
                 book = book
             })
         end
