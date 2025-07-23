@@ -31,9 +31,31 @@ local SERIES_FIELD = {
 -- This is a singleton
 local CalibreBrowse = WidgetContainer:extend{
     cache = nil,
+    current = nil,
+    field_browser = nil,
 }
 
-function CalibreBrowse:enter_field(node)
+function CalibreBrowse:display()
+    self.field_browser:switchItemTable(self.current.name, self.current.entries, 1)
+    UIManager:show(self.field_browser)
+end
+
+function CalibreBrowse:push(menu)
+    if self.current then
+        table.insert(self.field_browser.paths, self.current)
+    end
+
+    self.current = menu
+
+    self:display()
+end
+
+function CalibreBrowse:pop()
+    self.current = table.remove(self.field_browser.paths)
+    self:display()
+end
+
+function CalibreBrowse:push_field(node)
     local entries = {}
     for _, field in ipairs(node.children) do
         if field.book then
@@ -54,7 +76,7 @@ function CalibreBrowse:enter_field(node)
             table.insert(entries, {
                 text = field.name,
                 callback = function()
-                    self:enter_field(field)
+                    self:push_field(field)
                 end
             })
         end
@@ -74,11 +96,7 @@ function CalibreBrowse:enter_field(node)
 
     table.sort(entries, sort_fn)
 
-    logger.dbg(entries)
-
-    self.search_menu:switchItemTable(node.name, entries, 1)
-
-    UIManager:show(self.search_menu)
+    self:push({ name = node.name, entries = entries })
 end
 
 function CalibreBrowse:browse()
@@ -173,13 +191,24 @@ function CalibreBrowse:browse()
     logger.info(string.format("Built browse cache in %.3f milliseconds",
         time.to_ms(time.since(start_time))))
 
-    self.search_menu = Menu:new{
+    self.field_browser = Menu:new{
         covers_fullscreen = true,
         is_borderless = true,
         is_popout = false,
+        onReturn = function()
+            self:pop()
+        end,
+        onClose = function()
+            Menu.onClose(self.field_browser)
+
+            self.cache = nil
+            self.current = nil
+            self.field_browser = nil
+        end
     }
 
-    self:enter_field(self.cache)
+    self.current = nil
+    self:push_field(self.cache)
 end
 
 return CalibreBrowse
