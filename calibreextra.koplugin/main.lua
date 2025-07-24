@@ -21,6 +21,17 @@ local C_ = _.pgettext
 local T = require("ffi/util").template
 local sort = require("sort")
 
+function patch_menu(menu, after, item)
+    for i, v in ipairs(menu) do
+        if v == after then
+            if menu[i + 1] ~= item then
+                table.insert(menu, i + 1, item)
+            end
+            return
+        end
+    end
+end
+
 local Calibre = WidgetContainer:extend{
     name = "calibreextra",
     is_doc_only = false,
@@ -58,6 +69,14 @@ end
 function Calibre:init()
     CalibreWireless:init()
     self:onDispatcherRegisterActions()
+
+    local file_manager_menus = require("ui/elements/filemanager_menu_order")
+    patch_menu(file_manager_menus.tools, "calibre", "calibreextra")
+    patch_menu(file_manager_menus.main, "collections", "calibrebrowse")
+    local reader_menus = require("ui/elements/filemanager_menu_order")
+    patch_menu(reader_menus.tools, "calibre", "calibreextra")
+    patch_menu(reader_menus.main, "collections", "calibrebrowse")
+
     self.ui.menu:registerToMainMenu(self)
 end
 
@@ -101,7 +120,7 @@ function Calibre:addToMainMenu(menu_items)
 
     menu_items.calibrebrowse = {
         text = _("Browse Calibre"),
-        sorting_hint = "search",
+        sorting_hint = "main",
         enabled_func = function()
             return G_reader_settings:readSetting("inbox_dir")
         end,
@@ -113,7 +132,7 @@ end
 
 -- Browse field menu
 function Calibre:getFieldsMenuTable()
-    local enabled_fields = G_reader_settings:readSetting("calibre_enabled_fields", {})
+    local enabled_fields = G_reader_settings:readSetting("calibreextra_enabled_fields", {})
 
     local function field_menu(id, name)
         return {
@@ -129,7 +148,7 @@ function Calibre:getFieldsMenuTable()
                     enabled_fields[id] = true
                 end
 
-                G_reader_settings:saveSetting("calibre_enabled_fields", enabled_fields)
+                G_reader_settings:saveSetting("calibreextra_enabled_fields", enabled_fields)
             end
         }
     end

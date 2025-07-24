@@ -204,7 +204,7 @@ function CalibreBrowse:browse()
             children = {}
         }
     }
-    local enabled_fields = G_reader_settings:readSetting("calibre_enabled_fields", {})
+    local enabled_fields = G_reader_settings:readSetting("calibreextra_enabled_fields", {})
 
     local function add_field(id, field, values, book, index)
         if enabled_fields[id] == false or values == rapidjson.null or field.datatype == "float" then
