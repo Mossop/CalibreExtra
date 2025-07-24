@@ -6,6 +6,8 @@ In wireless transfers calibre sends the same metadata to the client, which is in
 of storing it.
 --]]--
 
+local BookList = require("ui/widget/booklist")
+local DocSettings = require("docsettings")
 local lfs = require("libs/libkoreader-lfs")
 local rapidjson = require("rapidjson")
 local logger = require("logger")
@@ -19,6 +21,7 @@ local used_metadata = {
     "size",
     "title",
     "authors",
+    "author_sort_map",
     "tags",
     "series",
     "series_index"
@@ -155,18 +158,54 @@ end
 function CalibreMetadata:addBook(book)
     -- prevent duplicate entries
     if not self:updateBook(book) then
-        table.insert(self.books, #self.books + 1, slim_book(book.metadata))
+        table.insert(self.books, #self.books + 1, slim_book(book))
+        self:updateRead(book)
     end
 end
 
 -- update a book in our books table if exists
 function CalibreMetadata:updateBook(book)
-    local _, index = self:getBookUuid(book.metadata.lpath)
+    local _, index = self:getBookUuid(book.lpath)
     if index then
-        self.books[index] = slim_book(book.metadata)
+        self.books[index] = slim_book(book)
+        self:updateRead(book)
         return true
     end
     return false
+end
+
+function CalibreMetadata:updateRead(book)
+    local read_field = G_reader_settings:readSetting("calibreextra_read_field")
+    if read_field then
+        local updated_is_read = nil
+        for k, v in pairs(book.user_metadata) do
+            if k == read_field and v["#value#"] ~= rapidjson.null then
+                updated_is_read = v["#value#"]
+            end
+        end
+
+        if updated_is_read == nil then
+            return
+        end
+
+        local full_path = self.path .. "/" .. book.lpath
+        local summary = BookList.getBookInfo(full_path) or {}
+        local local_is_read = summary.status == "complete"
+
+        if updated_is_read ~= nil then
+            if local_is_read ~= updated_is_read then
+                local doc_settings = DocSettings:open(full_path)
+                if updated_is_read then
+                    summary.status = "complete"
+                else
+                    summary.status = nil
+                end
+                BookList.setBookInfoCacheProperty(full_path, "status", summary.status)
+                doc_settings:saveSetting("summary", summary)
+                doc_settings:flush()
+            end
+        end
+    end
 end
 
 -- remove a book from our books table
@@ -194,6 +233,13 @@ function CalibreMetadata:getBookId(index)
     for _, key in ipairs({"uuid", "lpath", "last_modified"}) do
         book[key] = self.books[index][key]
     end
+
+    local read_field = G_reader_settings:readSetting("calibreextra_read_field")
+    if read_field then
+        local full_path = self.path .. "/" .. book.lpath
+        book["_is_read_"] = BookList.getBookStatus(full_path) == "complete"
+    end
+
     return book
 end
 

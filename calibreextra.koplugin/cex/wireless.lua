@@ -4,6 +4,7 @@
 --]]
 
 local BD = require("ui/bidi")
+local BookList = require("ui/widget/booklist")
 local CalibreExtensions = require("cex/extensions")
 local CalibreMetadata = require("cex/metadata")
 local ConfirmBox = require("ui/widget/confirmbox")
@@ -437,7 +438,7 @@ function CalibreWireless:onReceiveJSON(data)
             elseif opcode == OPCODES.NOOP then
                 self:noop(arg)
             else
-                logger.warn("unknown calibre opcode", opcode)
+                logger.warn("unknown calibre opcode", opcode, arg)
             end
             self.re(true)
         else
@@ -499,6 +500,12 @@ function CalibreWireless:getInitInfo(arg)
         useUuidFileNames = false,
         versionOK = true,
     }
+
+    local read_field = G_reader_settings:readSetting("calibreextra_read_field")
+    if read_field then
+        init_info.isReadSyncCol = read_field
+    end
+
     self:sendJsonData('OK', init_info)
 end
 
@@ -568,7 +575,7 @@ function CalibreWireless:getFreeSpace(arg)
 end
 
 function CalibreWireless:setLibraryInfo(arg)
-    logger.dbg("SET_LIBRARY_INFO", arg)
+    logger.dbg("SET_LIBRARY_INFO")
     self:sendJsonData('OK', {})
 end
 
@@ -663,7 +670,7 @@ function CalibreWireless:sendBook(arg)
                 outfile:close()
                 logger.dbg("complete writing file", filename)
                 -- add book to local database/table
-                CalibreMetadata:addBook(arg)
+                CalibreMetadata:addBook(arg.metadata)
                 UIManager:show(InfoMessage:new{
                     text = T(_("Received file %1/%2: %3"),
                         arg.thisBook + 1, arg.totalBooks, BD.filepath(filename)),
@@ -708,9 +715,9 @@ function CalibreWireless:sendBook(arg)
 end
 
 function CalibreWireless:sendBookMetadata(arg)
-    logger.dbg("SEND_BOOK_METADATA", arg)
+    logger.dbg("SEND_BOOK_METADATA", arg.data.lpath)
 
-    -- CalibreMetadata:updateBook(arg.data)
+    CalibreMetadata:updateBook(arg.data)
 
     if (arg.index + 1) == arg.count then
         CalibreMetadata:saveBookList()
@@ -730,7 +737,9 @@ function CalibreWireless:deleteBook(arg)
             logger.warn("requested to delete a book no longer on device", arg.lpaths[i])
         else
             titles = titles .. "\n" .. CalibreMetadata.books[index].title
-            util.removeFile(inbox_dir.."/"..v)
+            local full_path = inbox_dir .. "/" .. v
+            util.removeFile(full_path)
+            BookList.resetBookInfoCache(full_path)
             CalibreMetadata:removeBook(v)
         end
         self:sendJsonData('OK', { uuid = book_uuid })

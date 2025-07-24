@@ -85,37 +85,43 @@ function Calibre:addToMainMenu(menu_items)
         -- its name is "calibreextra", but all our top menu items are uppercase.
         text = _("Calibre Extra"),
         sorting_hint = "tools",
-        sub_item_table = {
-            {
-                text_func = function()
-                    if CalibreWireless.calibre_socket then
-                        return _("Disconnect")
-                    else
-                        return _("Connect")
-                    end
-                end,
-                separator = true,
-                enabled_func = function()
-                    return G_reader_settings:nilOrTrue("calibre_wireless")
-                end,
-                callback = function()
-                    if not CalibreWireless.calibre_socket then
-                        CalibreWireless:connect()
-                    else
-                        CalibreWireless:disconnect()
-                    end
-                end,
-            },
-            {
-                text = _("Fields"),
-                sub_item_table = self:getFieldsMenuTable(),
-            },
-            {
-                text = _("Wireless settings"),
-                keep_menu_open = true,
-                sub_item_table = self:getWirelessMenuTable(),
-            },
-        }
+        sub_item_table_func = function()
+            return {
+                {
+                    text_func = function()
+                        if CalibreWireless.calibre_socket then
+                            return _("Disconnect")
+                        else
+                            return _("Connect")
+                        end
+                    end,
+                    separator = true,
+                    enabled_func = function()
+                        return G_reader_settings:nilOrTrue("calibre_wireless")
+                    end,
+                    callback = function()
+                        if not CalibreWireless.calibre_socket then
+                            CalibreWireless:connect()
+                        else
+                            CalibreWireless:disconnect()
+                        end
+                    end,
+                },
+                {
+                    text = _("Fields"),
+                    sub_item_table = self:getFieldsMenuTable(),
+                },
+                {
+                    text = _("Read field"),
+                    sub_item_table = self:getReadFieldMenuTable(),
+                },
+                {
+                    text = _("Wireless settings"),
+                    keep_menu_open = true,
+                    sub_item_table = self:getWirelessMenuTable(),
+                },
+            }
+        end
     }
 
     menu_items.calibrebrowse = {
@@ -128,6 +134,48 @@ function Calibre:addToMainMenu(menu_items)
             CalibreBrowse:browse()
         end,
     }
+end
+
+-- Browse field menu
+function Calibre:getReadFieldMenuTable()
+    local read_field = G_reader_settings:readSetting("calibreextra_read_field")
+
+    local function field_menu(id, name)
+        return {
+            text = name,
+            keep_menu_open = true,
+            checked_func = function()
+                return id == read_field
+            end,
+            callback = function()
+                read_field = id
+                G_reader_settings:saveSetting("calibreextra_read_field", id)
+            end
+        }
+    end
+
+    local submenu = {
+    }
+
+    local inbox_dir = G_reader_settings:readSetting("inbox_dir")
+    if inbox_dir then
+        CalibreMetadata:init(inbox_dir)
+        for k, field in pairs(CalibreMetadata:getLibraryFields()) do
+            if field.datatype == "bool" then
+                table.insert(submenu, field_menu(k, field.name))
+            end
+        end
+        CalibreMetadata:clean()
+    end
+
+    local natsort = sort.natsort_cmp()
+    table.sort(submenu, function(a, b)
+        return natsort(a.text, b.text)
+    end)
+
+    table.insert(submenu, 1, field_menu(nil, _("None")))
+
+    return submenu
 end
 
 -- Browse field menu

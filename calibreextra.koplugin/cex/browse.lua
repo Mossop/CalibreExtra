@@ -124,13 +124,22 @@ function CalibreBrowse:pop()
     self:display()
 end
 
+local function name(value)
+    if value == true then
+        return _("Yes")
+    elseif value == false then
+        return _("No")
+    else
+        return value
+    end
+end
+
 function CalibreBrowse:push_field(node)
     local entries = {}
     for _, field in ipairs(node.children) do
         if field.book then
             local text
             if node.ordering == "index" then
-                logger.dbg("push_field", field.index, field.book.title)
                 text = string.format("%d - %s", field.index, field.book.title)
             else
                 text = field.book.title
@@ -145,7 +154,7 @@ function CalibreBrowse:push_field(node)
             })
         else
             table.insert(entries, {
-                text = field.name,
+                text = name(field.name),
                 callback = function()
                     self:push_field(field)
                 end
@@ -166,8 +175,13 @@ function CalibreBrowse:push_field(node)
 
     table.sort(entries, sort_fn)
 
+    local title = name(node.name)
+    if #self.stack > 0 then
+        title = self.current.name .. ": " .. title
+    end
+
     self:push({
-        name = node.name,
+        name = title,
         ordering = node.ordering,
         datatype = node.datatype,
         entries = entries,
@@ -215,6 +229,8 @@ function CalibreBrowse:browse()
             local field_order
             if field.datatype == "author" then
                 field_order = "author"
+            elseif field.datatype == "bool" then
+                field_order = "bool"
             else
                 field_order = "text"
             end

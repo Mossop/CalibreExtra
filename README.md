@@ -10,6 +10,10 @@ To install copy the `calibreextra.koplugin` to the plugins directory of your KOR
 
 This plugin supports navigating through the Calibre library in a browser like interface. From the plugin's settings you can configure which fields are available, including custom user fields. Then you can navigate the fields displaying all books that match.
 
+### Synchronising read status
+
+You can use a custom Yes/No column in Calibre to track whether a book has been read or not and this plugin will synchronise it when connecting. Select the column you want from the plugin settings menu. It synchronises with KOReader's status for the book.
+
 ## Removed features
 
 The following features are removed in comparison to the default Calibre plugin:
