@@ -1,6 +1,6 @@
 # CalibreExtra
 
-An improved version of [KOReader](https://koreader.rocks/)'s [Calibre](https://calibre-ebook.com/) plugin
+An improved version of [KOReader](https://koreader.rocks/)'s [Calibre](https://calibre-ebook.com/) plugin. It is built to be a more capable wireless client to Calibre supporting status synchronisation and browsing through custom columns.
 
 To install copy the `calibreextra.koplugin` to the plugins directory of your KOReader installation.
 
