@@ -21,7 +21,7 @@ local C_ = _.pgettext
 local T = require("ffi/util").template
 local sort = require("sort")
 
-function patch_menu(menu, after, item)
+local function patch_menu(menu, after, item)
     for i, v in ipairs(menu) do
         if v == after then
             if menu[i + 1] ~= item then
@@ -96,9 +96,6 @@ function Calibre:addToMainMenu(menu_items)
                         end
                     end,
                     separator = true,
-                    enabled_func = function()
-                        return G_reader_settings:nilOrTrue("calibre_wireless")
-                    end,
                     callback = function()
                         if not CalibreWireless.calibre_socket then
                             CalibreWireless:connect()
@@ -229,24 +226,10 @@ end
 -- wireless options available from UI
 function Calibre:getWirelessMenuTable()
     local function isEnabled()
-        local enabled = G_reader_settings:nilOrTrue("calibre_wireless")
-        return enabled and not CalibreWireless.calibre_socket
+        return not CalibreWireless.calibre_socket
     end
 
     local t = {
-        {
-            text = _("Enable wireless client"),
-            separator = true,
-            enabled_func = function()
-                return not CalibreWireless.calibre_socket
-            end,
-            checked_func = function()
-                return G_reader_settings:nilOrTrue("calibre_wireless")
-            end,
-            callback = function()
-                G_reader_settings:flipNilOrTrue("calibre_wireless")
-            end,
-        },
         {
             text = _("Set password"),
             enabled_func = isEnabled,
