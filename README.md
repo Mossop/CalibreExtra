@@ -8,6 +8,10 @@ To install copy the `calibreextra.koplugin` to the plugins directory of your KOR
 
 ### Library browser
 
+<div align="center">
+  <img src="library.gif"/>
+</div>
+
 This plugin supports navigating through the Calibre library in a browser like interface. From the plugin's settings you can configure which fields are available, including custom user fields. Then you can navigate the fields displaying all books that match.
 
 ### Synchronising read status
