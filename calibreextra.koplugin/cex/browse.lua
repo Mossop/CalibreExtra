@@ -155,6 +155,7 @@ function CalibreBrowse:push_field(node)
         else
             table.insert(entries, {
                 text = name(field.name),
+                sort_text = field.sort_name,
                 callback = function()
                     self:push_field(field)
                 end
@@ -169,7 +170,9 @@ function CalibreBrowse:push_field(node)
         end
     else
         sort_fn = function(a, b)
-            return ffiUtil.strcoll(a.text, b.text)
+            local a_text = a.sort_text or a.text
+            local b_text = b.sort_text or b.text
+            return ffiUtil.strcoll(a_text, b_text)
         end
     end
 
@@ -261,6 +264,10 @@ function CalibreBrowse:browse()
                     ordering = book_order,
                     children = {}
                 }
+
+                if id == "authors" then
+                    fields[id].children[value].sort_name = book.author_sort_map[value]
+                end
             end
 
             table.insert(fields[id].children[value].children, {
