@@ -225,6 +225,12 @@ function CalibreMetadata:updateRead(book)
     end
 end
 
+function CalibreMetadata:updateReadField()
+    for _, book in ipairs(self.books) do
+        self:updateRead(book)
+    end
+end
+
 -- remove a book from our books table
 function CalibreMetadata:removeBook(lpath)
     local function drop_lpath(t, i, j)

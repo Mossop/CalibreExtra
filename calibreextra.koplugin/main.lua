@@ -12,6 +12,7 @@ local CalibreBrowse = require("cex/browse")
 local CalibreExtensions = require("cex/extensions")
 local CalibreMetadata = require("cex/metadata")
 local CalibreWireless = require("cex/wireless")
+local ConfirmBox = require("ui/widget/confirmbox")
 local Dispatcher = require("dispatcher")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
@@ -109,6 +110,9 @@ function Calibre:addToMainMenu(menu_items)
                     sub_item_table = self:getFieldsMenuTable(),
                 },
                 {
+                    enabled_func = function()
+                        return G_reader_settings:readSetting("inbox_dir")
+                    end,
                     text = _("Read field"),
                     sub_item_table = self:getReadFieldMenuTable(),
                 },
@@ -147,6 +151,19 @@ function Calibre:getReadFieldMenuTable()
             callback = function()
                 read_field = id
                 G_reader_settings:saveSetting("calibreextra_read_field", id)
+
+                if id then
+                    UIManager:show(ConfirmBox:new{
+                        text = _("Update KOReader from this column? If not Calibre state will be overwritten on next sync."),
+                        ok_text = _("Update"),
+                        ok_callback = function()
+                            local inbox_dir = G_reader_settings:readSetting("inbox_dir")
+                            CalibreMetadata:init(inbox_dir)
+                            CalibreMetadata:updateReadField()
+                            CalibreMetadata:clean()
+                        end,
+                    })
+                end
             end
         }
     end
