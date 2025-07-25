@@ -8,11 +8,16 @@ of storing it.
 
 local BookList = require("ui/widget/booklist")
 local DocSettings = require("docsettings")
+local FFIUtil = require("ffi/util")
+local InfoMessage = require("ui/widget/infomessage")
+local UIManager = require("ui/uimanager")
 local lfs = require("libs/libkoreader-lfs")
 local rapidjson = require("rapidjson")
 local logger = require("logger")
 local util = require("util")
 local time = require("ui/time")
+local _ = require("gettext")
+local T = FFIUtil.template
 
 local used_metadata = {
     "uuid",
@@ -152,6 +157,18 @@ function CalibreMetadata:saveBookList()
     local file = self.metadata
     local books = self.books
     rapidjson.dump(books, file, { pretty = true })
+
+    local read_field = G_reader_settings:readSetting("calibreextra_read_field")
+    if read_field then
+        local fields = self:getLibraryFields()
+        if not fields[read_field] or fields[read_field].datatype ~= "bool" then
+            G_reader_settings:saveSetting("calibreextra_read_field", nil)
+
+            UIManager:show(InfoMessage:new{
+                text = T(_("Calibre Extra: No longer syncing read status with missing field '%1'"), read_field),
+            })
+        end
+    end
 end
 
 -- add a book to our books table

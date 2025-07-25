@@ -764,7 +764,9 @@ end
 
 function CalibreWireless:serverFeedback(arg)
     logger.dbg("DISPLAY_MESSAGE", arg)
-    -- here we only care about password errors
+
+    self:sendJsonData('OK', {})
+
     if arg.messageKind == 1 then
         self.invalid_password = true
     end
