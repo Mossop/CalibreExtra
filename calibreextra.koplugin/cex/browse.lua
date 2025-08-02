@@ -3,6 +3,7 @@ local CalibreMetadata = require("cex/metadata")
 local FileChooser = require("ui/widget/filechooser")
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
+local Utf8Proc = require("ffi/utf8proc")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local _ = require("gettext")
 local ffiUtil = require("ffi/util")
@@ -10,6 +11,7 @@ local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
 local rapidjson = require("rapidjson")
 local time = require("ui/time")
+local util = require("util")
 
 local BookBrowser = FileChooser:extend{
 }
@@ -17,6 +19,17 @@ local BookBrowser = FileChooser:extend{
 function BookBrowser:init()
     self.path_items = {}
     BookList.init(self)
+end
+
+function text_sort(str)
+    local lower = Utf8Proc.lowercase(util.fixUtf8(str, "?"))
+    if string.sub(lower, 1, 4) == "the " then
+        lower = string.sub(lower, 5)
+    end
+    if string.sub(lower, 1, 2) == "a " then
+        lower = string.sub(lower, 3)
+    end
+    return lower
 end
 
 local FieldBrowser = Menu:extend{
@@ -170,8 +183,8 @@ function CalibreBrowse:push_field(node)
         end
     else
         sort_fn = function(a, b)
-            local a_text = a.sort_text or a.text
-            local b_text = b.sort_text or b.text
+            local a_text = text_sort(a.sort_text or a.text)
+            local b_text = text_sort(b.sort_text or b.text)
             return ffiUtil.strcoll(a_text, b_text)
         end
     end
