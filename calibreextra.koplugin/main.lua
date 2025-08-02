@@ -74,7 +74,7 @@ function Calibre:init()
     local file_manager_menus = require("ui/elements/filemanager_menu_order")
     patch_menu(file_manager_menus.tools, "calibre", "calibreextra")
     patch_menu(file_manager_menus.main, "collections", "calibrebrowse")
-    local reader_menus = require("ui/elements/filemanager_menu_order")
+    local reader_menus = require("ui/elements/reader_menu_order")
     patch_menu(reader_menus.tools, "calibre", "calibreextra")
     patch_menu(reader_menus.main, "collections", "calibrebrowse")
 
