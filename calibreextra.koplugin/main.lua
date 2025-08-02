@@ -149,6 +149,10 @@ function Calibre:getReadFieldMenuTable()
                 return id == read_field
             end,
             callback = function()
+                if read_field == id then
+                    return
+                end
+
                 read_field = id
                 G_reader_settings:saveSetting("calibreextra_read_field", id)
 
