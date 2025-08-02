@@ -9,6 +9,7 @@ local CalibreExtensions = require("cex/extensions")
 local CalibreMetadata = require("cex/metadata")
 local ConfirmBox = require("ui/widget/confirmbox")
 local Device = require("device")
+local DocSettings = require("docsettings")
 local FFIUtil = require("ffi/util")
 local InputDialog = require("ui/widget/inputdialog")
 local InfoMessage = require("ui/widget/infomessage")
@@ -671,6 +672,23 @@ function CalibreWireless:sendBook(arg)
                 logger.dbg("complete writing file", filename)
                 -- add book to local database/table
                 CalibreMetadata:addBook(arg.metadata)
+
+                -- Reset the various caches of data for this book
+                BookList.resetBookInfoCache(filename)
+
+                if DocSettings:hasSidecarFile(filename) then
+                    local doc_settings = DocSettings:open(filename)
+                    doc_settings:delSetting("doc_props")
+                    doc_settings:flush()
+                end
+
+                -- Delete from CoverBrowser if activated
+                local ok, BookInfoManager = pcall(require, "bookinfomanager")
+                if ok then
+                    BookInfoManager:deleteBookInfo(filename)
+                    BookInfoManager:closeDbConnection()
+                end
+
                 UIManager:show(InfoMessage:new{
                     text = T(_("Received file %1/%2: %3"),
                         arg.thisBook + 1, arg.totalBooks, BD.filepath(filename)),
