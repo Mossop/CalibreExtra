@@ -117,6 +117,10 @@ end
 -- Gets the custom fields for the library
 function CalibreMetadata:getLibraryCustomFields()
     local fields = {}
+    if not self.drive.fieldMetadata then
+        return fields
+    end
+
     for key, field in pairs(self.drive.fieldMetadata) do
         if string.sub(key, 1, 1) == "#" then
             local default = field.display.default_value
