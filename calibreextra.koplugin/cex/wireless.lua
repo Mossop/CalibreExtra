@@ -577,6 +577,7 @@ end
 
 function CalibreWireless:setLibraryInfo(arg)
     logger.dbg("SET_LIBRARY_INFO")
+    CalibreMetadata:setLibraryFields(arg.fieldMetadata)
     self:sendJsonData('OK', {})
 end
 

@@ -115,20 +115,29 @@ function CalibreMetadata:saveDeviceInfo(arg)
 end
 
 -- Gets the custom fields for the library
-function CalibreMetadata:getLibraryFields()
+function CalibreMetadata:getLibraryCustomFields()
     local fields = {}
-    for _, book in ipairs(self.books) do
-        for key, field in pairs(book.user_metadata) do
-            if not fields[key] then
-                fields[key] = {
-                    datatype = field.datatype,
-                    name = field.name,
-                }
+    for key, field in pairs(self.drive.fieldMetadata) do
+        if string.sub(key, 1, 1) == "#" then
+            local default = field.display.default_value
+            if default == nil then
+                default = rapidjson.null
             end
+
+            fields[key] = {
+                datatype = field.datatype,
+                name = field.name,
+                default = default,
+            }
         end
     end
 
     return fields
+end
+
+function CalibreMetadata:setLibraryFields(fieldMetadata)
+    self.drive.fieldMetadata = fieldMetadata
+    rapidjson.dump(self.drive, self.driveinfo)
 end
 
 -- loads books' metadata from JSON file
@@ -160,7 +169,7 @@ function CalibreMetadata:saveBookList()
 
     local read_field = G_reader_settings:readSetting("calibreextra_read_field")
     if read_field then
-        local fields = self:getLibraryFields()
+        local fields = self:getLibraryCustomFields()
         if not fields[read_field] or fields[read_field].datatype ~= "bool" then
             G_reader_settings:saveSetting("calibreextra_read_field", nil)
 

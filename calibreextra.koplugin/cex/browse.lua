@@ -235,9 +235,18 @@ function CalibreBrowse:browse()
         }
     }
     local enabled_fields = G_reader_settings:readSetting("calibreextra_enabled_fields", {})
+    local user_fields = CalibreMetadata:getLibraryCustomFields()
 
     local function add_field(id, field, values, book, index)
-        if enabled_fields[id] == false or values == rapidjson.null or field.datatype == "float" then
+        if enabled_fields[id] == false or field.datatype == "float" then
+            return
+        end
+
+        if values == rapidjson.null and user_fields[id] then
+            values = user_fields[id].default
+        end
+
+        if values == rapidjson.null then
             return
         end
 

@@ -178,7 +178,7 @@ function Calibre:getReadFieldMenuTable()
     local inbox_dir = G_reader_settings:readSetting("inbox_dir")
     if inbox_dir then
         CalibreMetadata:init(inbox_dir)
-        for k, field in pairs(CalibreMetadata:getLibraryFields()) do
+        for k, field in pairs(CalibreMetadata:getLibraryCustomFields()) do
             if field.datatype == "bool" then
                 table.insert(submenu, field_menu(k, field.name))
             end
@@ -228,7 +228,7 @@ function Calibre:getFieldsMenuTable()
     local inbox_dir = G_reader_settings:readSetting("inbox_dir")
     if inbox_dir then
         CalibreMetadata:init(inbox_dir)
-        for k, field in pairs(CalibreMetadata:getLibraryFields()) do
+        for k, field in pairs(CalibreMetadata:getLibraryCustomFields()) do
             if field.datatype ~= "float" then
                 table.insert(submenu, field_menu(k, field.name))
             end
