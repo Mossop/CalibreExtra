@@ -591,6 +591,14 @@ function CalibreWireless:getBookCount(arg)
     self:sendJsonData('OK', books)
     for index, _ in ipairs(CalibreMetadata.books) do
         local book = CalibreMetadata:getBookId(index)
+        -- Also send current rating, knowing that it will be ultimately ignored
+        -- by Calibre unless https://bugs.launchpad.net/calibre/+bug/2169434
+        -- is implemented
+        if book["rating"] ~= nil then
+            -- Account for Calibre storing ratings as 1..10, even though it only
+            -- ever displays 1..5 like KOReader
+            book["rating"] = book["rating"] * 2
+        end
         logger.dbg(string.format("sending book id %d/%d", index, #CalibreMetadata.books))
         self:sendJsonData('OK', book)
     end

@@ -29,11 +29,16 @@ local used_metadata = {
     "author_sort_map",
     "tags",
     "series",
-    "series_index"
+    "series_index",
+    "rating"
 }
 
 local function slim_user_metadata(user_metadata)
     local slim_metadata = rapidjson.object({})
+    if not user_metadata then
+        return slim_metadata
+    end
+
     for key, data in pairs(user_metadata) do
         local slim_field = rapidjson.object({})
         slim_field.name = data.name
@@ -50,7 +55,7 @@ end
 local function slim_book(book)
     local slim_book = rapidjson.object({})
     for _, k in ipairs(used_metadata) do
-        if k == "series" or k == "series_index" then
+        if k == "series" or k == "series_index" or k == "rating" then
             slim_book[k] = book[k] or rapidjson.null
         elseif k == "tags" or k == "authors" then
             slim_book[k] = book[k] or rapidjson.array({})
@@ -198,43 +203,63 @@ function CalibreMetadata:updateBook(book)
     local _, index = self:getBookUuid(book.lpath)
     if index then
         self.books[index] = slim_book(book)
-        self:updateRead(book)
+        self:updateLocalState(book)
         return true
     end
     return false
 end
 
-function CalibreMetadata:updateRead(book)
+function CalibreMetadata:updateLocalState(book)
+    local updated_is_read = nil
+    local updated_rating = nil
+
     local read_field = G_reader_settings:readSetting("calibreextra_read_field")
     if read_field then
-        local updated_is_read = nil
         for k, v in pairs(book.user_metadata) do
             if k == read_field and v["#value#"] ~= rapidjson.null then
                 updated_is_read = v["#value#"]
             end
         end
+    end
 
-        if updated_is_read == nil then
-            return
+    if book.rating ~= rapidjson.null then
+        -- Even though Calibre displays it’s rating scale as 1 to 5, it is sent
+        -- as 1 to 10, so we undo that here
+        updated_rating = book.rating / 2
+    end
+
+    if updated_is_read == nil and updated_rating == nil then
+        return
+    end
+
+    local full_path = self.path .. "/" .. book.lpath
+    local summary = BookList.getBookInfo(full_path) or {}
+    local doc_settings = DocSettings:open(full_path)
+
+    local local_is_read = summary.status == "complete"
+    local local_rating = summary.rating
+
+    local have_update = false
+
+    if updated_is_read ~= nil and updated_is_read ~= local_is_read then
+        if updated_is_read then
+            summary.status = "complete"
+        else
+            summary.status = nil
         end
+        have_update = true
+    end
 
-        local full_path = self.path .. "/" .. book.lpath
-        local summary = BookList.getBookInfo(full_path) or {}
-        local local_is_read = summary.status == "complete"
+    if updated_rating ~= nil and updated_rating ~= local_rating then
+        summary.rating = updated_rating
+        have_update = true
+    end
 
-        if updated_is_read ~= nil then
-            if local_is_read ~= updated_is_read then
-                local doc_settings = DocSettings:open(full_path)
-                if updated_is_read then
-                    summary.status = "complete"
-                else
-                    summary.status = nil
-                end
-                BookList.setBookInfoCacheProperty(full_path, "status", summary.status)
-                doc_settings:saveSetting("summary", summary)
-                doc_settings:flush()
-            end
-        end
+    if have_update then
+        BookList.setBookInfoCacheProperty(full_path, "status", summary.status)
+        BookList.setBookInfoCacheProperty(full_path, "rating", summary.rating)
+        doc_settings:saveSetting("summary", summary)
+        doc_settings:flush()
     end
 end
 
@@ -270,10 +295,16 @@ function CalibreMetadata:getBookId(index)
         book[key] = self.books[index][key]
     end
 
+    local full_path = self.path .. "/" .. book.lpath
+
     local read_field = G_reader_settings:readSetting("calibreextra_read_field")
     if read_field then
-        local full_path = self.path .. "/" .. book.lpath
         book["_is_read_"] = BookList.getBookStatus(full_path) == "complete"
+    end
+
+    local rating = BookList.getBookInfo(full_path).rating
+    if rating ~= nil then
+        book["rating"] = rating
     end
 
     return book
